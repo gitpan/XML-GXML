@@ -1,0 +1,41 @@
+<article>
+<head>
+<!-- we must use "html:title" here so we don't conflict with the title
+     declared in our source document. the html: part will get stripped
+     automatically by gxml2html. -->
+<html:title>%%%title%%%</html:title>
+</head>
+
+<!-- ditto on the body tag -->
+<html:body bgcolor="#ffffff">
+
+<p align="center">
+<img src="images/title.gif"/>
+</p>
+
+<!-- make a page header -->
+<table width="100%" border="0">
+<tr>
+  <td align="left"><smalltype>Online Edition</smalltype></td>
+  <td align="right"><smalltype>%%%date%%%</smalltype></td>
+</tr>
+</table>
+
+<!-- now for the article body -->
+<table width="80%" align="center" border="0">
+<tr><td>
+%%%body%%%
+</td></tr>
+</table>
+
+<!-- page footer -->
+<table width="100%" border="0">
+<tr>
+  <td align="left"><smalltype>Billville Times Online</smalltype></td>
+  <td width="70%" align="center"> <hr size="3"/> </td>
+</tr>
+</table>
+
+</html:body>
+
+</article>

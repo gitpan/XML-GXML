@@ -1,0 +1,13 @@
+XML::GXML Install
+
+Run the following, as usual for any Perl module:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+Then see the user's guide at docs/index.html
+
+Please let me know if you have any problems, suggestions, or other
+comments. Email: josh@multipart-mixed.com

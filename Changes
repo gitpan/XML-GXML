@@ -1,0 +1,7 @@
+Revision history for XML::GXML
+
+2.1  May 22, 2001 - Josh Carter <josh@multipart-mixed.com>
+     - Created makefile and otherwise made GXML a "proper" Perl
+	 module, ready to go into CPAN.
+     - Fixed some spelling errors in the docs.
+     - Made --debug option to gxml2html work again.

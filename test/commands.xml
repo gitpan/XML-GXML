@@ -1,0 +1,63 @@
+<basetag title="yo">
+
+<!-- test file for commands.pl. Uses templates/cmd-foreach.xml, too. -->
+
+<thing>hi there</thing>
+
+<gxml:ifequals expr="title" equalto="yo">
+<p>equalto seems to work (test 1)</p>
+</gxml:ifequals>
+
+<gxml:ifequals expr="title" equalto="bob">
+<p>XXX equalto is *not* working! (test 2)</p>
+</gxml:ifequals>
+
+<gxml:ifexists expr="thing">
+<p>ifexists is working (test 1)</p>
+</gxml:ifexists>
+
+<gxml:ifexists expr="NOT thing">
+<p>XXX ifexists failed! (test 2)</p>
+</gxml:ifexists>
+
+<gxml:ifexists expr="NOT nothing">
+<p>ifexists is working (test 3)</p>
+</gxml:ifexists>
+
+<gxml:ifexists expr="thing OR nothing">
+<p>ifexists is working (test 4)</p>
+</gxml:ifexists>
+
+<gxml:ifexists expr="thing OR NOT NOT nothing">
+<p>ifexists is working (test 5)</p>
+</gxml:ifexists>
+
+<gxml:ifexists expr="thing AND nothing">
+<p>XXX ifexists failed! (test 6)</p>
+</gxml:ifexists>
+
+<gxml:ifexists expr="thing AND NOT thing">
+<p>XXX ifexists failed! (post-modernity test)</p>
+</gxml:ifexists>
+
+<person>
+  <name>Bob</name>
+  <age>20</age>
+</person>
+
+<person name="Ned" age="30"/>
+
+<subthing>1</subthing>
+<subthing>2</subthing>
+<subthing>3</subthing>
+
+<gxml:foreach expr="person">
+<cmd-foreach/>
+</gxml:foreach>
+
+<p>
+after the loop, person name is: %%%person:name%%%
+(should be the first person)
+</p>
+
+</basetag>
