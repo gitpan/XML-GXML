@@ -4,41 +4,29 @@
 
 <thing>hi there</thing>
 
-<gxml:ifequals expr="title" equalto="yo">
-<p>equalto seems to work (test 1)</p>
-</gxml:ifequals>
+<gxml:ifequals expr="title" equalto="yo">ifequals is working (test 1)</gxml:ifequals>
 
-<gxml:ifequals expr="title" equalto="bob">
-<p>XXX equalto is *not* working! (test 2)</p>
-</gxml:ifequals>
+<gxml:ifequal expr="title" equalto="yo">ifequal is working (test 2)</gxml:ifequal>
 
-<gxml:ifexists expr="thing">
-<p>ifexists is working (test 1)</p>
-</gxml:ifexists>
+<gxml:ifequals expr="title" equalto="bob">XXX ifequals is *not* working!</gxml:ifequals>
 
-<gxml:ifexists expr="NOT thing">
-<p>XXX ifexists failed! (test 2)</p>
-</gxml:ifexists>
+<gxml:ifnotequal expr="title" equalto="bob">ifnotequal is working (test 3)</gxml:ifnotequal>
 
-<gxml:ifexists expr="NOT nothing">
-<p>ifexists is working (test 3)</p>
-</gxml:ifexists>
+<gxml:ifexists expr="thing">ifexists is working (test 4)</gxml:ifexists>
 
-<gxml:ifexists expr="thing OR nothing">
-<p>ifexists is working (test 4)</p>
-</gxml:ifexists>
+<gxml:ifexists expr="NOT thing">XXX ifexists failed!</gxml:ifexists>
 
-<gxml:ifexists expr="thing OR NOT NOT nothing">
-<p>ifexists is working (test 5)</p>
-</gxml:ifexists>
+<gxml:ifexists expr="NOT nothing">ifexists is working (test 5)</gxml:ifexists>
 
-<gxml:ifexists expr="thing AND nothing">
-<p>XXX ifexists failed! (test 6)</p>
-</gxml:ifexists>
+<gxml:ifexists expr="thing OR nothing">ifexists is working (test 6)</gxml:ifexists>
 
-<gxml:ifexists expr="thing AND NOT thing">
-<p>XXX ifexists failed! (post-modernity test)</p>
-</gxml:ifexists>
+<gxml:ifexists expr="thing OR NOT NOT nothing">ifexists is working (test 7)</gxml:ifexists>
+
+<gxml:ifexists expr="thing AND nothing">XXX ifexists failed!</gxml:ifexists>
+
+<gxml:ifexists expr="thing AND NOT thing">XXX ifexists failed! (post-modernity test)</gxml:ifexists>
+
+You should have seen (test 1) through (test 7) above.
 
 <person>
   <name>Bob</name>
@@ -55,9 +43,7 @@
 <cmd-foreach/>
 </gxml:foreach>
 
-<p>
 after the loop, person name is: %%%person:name%%%
 (should be the first person)
-</p>
 
 </basetag>

@@ -11,6 +11,7 @@ Feb 24, 2002<br>
 
 
 
+<br clear="all">
 <h2>Overview</h2>
 
 
@@ -27,6 +28,7 @@ headings on this page to see if you find something interesting.
 
 
 
+<br clear="all">
 <h2>HTML Mode</h2>
 
 
@@ -45,7 +47,7 @@ on. HTML mode affects the output as follows:
 <ul>
 <li>Tags which have templates are stripped, leaving the content of the
 template without the enclosing tag.</li>
-<li>Single-tag entities are changed to HTML syntax.</li>
+<li>Single-tag elements are changed to HTML syntax.</li>
 </ul>
 
 <p>
@@ -61,7 +63,7 @@ As always, an example to demonstrate:
       &lt;caption&gt;Ugly Dog&lt;/caption&gt;
     &lt;/photo&gt;
     
-    &lt;!-- here's a single-tag entity, in XML syntax --&gt;
+    &lt;!-- here's a single-tag element, in XML syntax --&gt;
     &lt;hr/&gt;
     
     # output with HTML mode on:
@@ -72,7 +74,7 @@ As always, an example to demonstrate:
       Ugly Dog
     &lt;/p&gt;
     
-    &lt;!-- here's a single-tag entity, (now in HTML) syntax --&gt;
+    &lt;!-- here's a single-tag element, (now in HTML) syntax --&gt;
     &lt;hr&gt;
 </pre>
 
@@ -80,6 +82,7 @@ As always, an example to demonstrate:
 
 
 
+<br clear="all">
 <h2>Tag Remappings</h2>
 
 
@@ -127,6 +130,7 @@ content) is dropped.
 
 
 
+<br clear="all">
 <h2>Attribute Collection</h2>
 
 
@@ -141,17 +145,17 @@ I'm not sure if this feature is brilliant or totally gratuitous.
 (Maybe both?) There's a stripped-down class in GXML which just
 collects attributes using GXML's attribute engine. Given how XML
 allows you have two different styles of "attributes," i.e. real ones
-in entity start tags and "logical" ones (for lack of a better term)
-which are sub-entities, I figured people may find a GXML-based
+in element start tags and "logical" ones (for lack of a better term)
+which are sub-elements, I figured people may find a GXML-based
 attribute collector useful. If nothing else, I've found it useful.
 </p>
 
 <p>
-The concept is this: you specify the kind of entity you're looking for
+The concept is this: you specify the kind of element you're looking for
 (i.e. its tag), and the attributes you want to collect. GXML's
 AttributeCollector class returns a hash containing everything it
 found. The hash keys are an attribute you specify. For example, let's
-say you wanted to find all the "person" entities in the following XML
+say you wanted to find all the "person" elements in the following XML
 file, get their quest and favorite color, and key the result hash by
 their name:
 </p>
@@ -197,7 +201,7 @@ The source code for using the collector would be:
 </pre>
 
 <p>
-The parameters, as above, are the entity you're looking for, the key
+The parameters, as above, are the element you're looking for, the key
 attribute, and a array ref to the other attributes you want. If you
 want to run the collector over several sources, call <tt>Clear()</tt>
 inbetween to clear out the previous data. (Your config settings will
@@ -226,7 +230,7 @@ supported. Both styles of attributes can be used in the same source,
 and you can use default attributes. Note that templates will
 <em>not</em> be applied by AttributeCollector. This class was designed
 to run fast, so it doesn't use the template engine. If you need to do
-this, I'd recommend using a callback on the end tag of the entity
+this, I'd recommend using a callback on the end tag of the element
 you're looking for, then running GXML and calling Attribute() in the
 callback.
 </p>
@@ -235,14 +239,15 @@ callback.
 
 
 
+<br clear="all">
 <h2>Callbacks</h2>
 
 
 
 <p>
-Callbacks allow you to run code at the start or end tag of any entity
+Callbacks allow you to run code at the start or end tag of any element
 you specify. The end tag callbacks also allow you to control some
-aspects of how GXML handles the entity. Let's start with a simple
+aspects of how GXML handles the element. Let's start with a simple
 example:
 </p>
 
@@ -256,15 +261,15 @@ example:
 <p>
 The above code would call the subroutines <tt>thingStart</tt> and
 <tt>thingEnd</tt> whenever it saw the respective start and end tags of
-<tt>thing</tt> entities. The format for specifying start and end tag
+<tt>thing</tt> elements. The format for specifying start and end tag
 is prepending "start:" and "end:" to the name of the tag.
 </p>
 
 <p>
 So what are callbacks good for? Start tag callbacks could be used to
-keep track of entities, e.g. counting the number of a given entity.
+keep track of elements, e.g. counting the number of a given element.
 The end tag callbacks are somewhat more useful, since at that point
-GXML has parsed the content of the entity, so you can call
+GXML has parsed the content of the element, so you can call
 <tt>Attribute()</tt> to find attributes. End tag handlers can also
 do some neat tricks based on their return value.
 </p>
@@ -274,11 +279,11 @@ End tag handlers can return a combination of these values:
 </p>
 
 <ul>
-<li><b>discard</b>: Discards the entity. This is how gxml:ifexists and
+<li><b>discard</b>: Discards the element. This is how gxml:ifexists and
 ifequal are implemented; they return discard if their expression is
 not true.</li>
 
-<li><b>striptag</b>: Strips the entity's tag from the output but keeps
+<li><b>striptag</b>: Strips the element's tag from the output but keeps
 its content. The GXML commands return this if they don't return
 'discard,' since their tags shouldn't show up in the output.</li>
 
@@ -294,7 +299,7 @@ source code.</li>
 Since you can have return multiple commands, you need to return an
 array reference containing your values, even if you only return one
 thing in it. For example, let's say you want to add a callback for
-"thing" entities which only allows three instances of a "thing" in
+"thing" elements which only allows three instances of a "thing" in
 your output. You can easily do this with the following callback
 attached to "end:thing":
 </p>
@@ -319,6 +324,7 @@ Again, you're getting into pretty heavy wizardry here, so study GXML's
 
 
 
+<br clear="all">
 <h2>Dynamic Attributes (addlAttrs param)</h2>
 
 
@@ -361,6 +367,7 @@ in the XML source.
 
 
 
+<br clear="all">
 <h2>Dynamic Templates (addlTemplates param)</h2>
 
 
@@ -428,6 +435,7 @@ like it. Viola! -- now you have a dynamic, database-driven news page.
 
 
 
+<br clear="all">
 <h2>Old-Style Dynamic Templates</h2>
 
 

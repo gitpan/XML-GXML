@@ -15,7 +15,7 @@ use XML::Parser;
 # Most of these vars are used as locals during parsing.
 use vars ('$VERSION', '@attrStack', '$output', 
 		  '$baseTag', '$rPreserve', '$self');
-$VERSION = 2.2;
+$VERSION = 2.4;
 
 my $debugMode = 0;
 
@@ -27,11 +27,13 @@ sub new
 {
 	my ($pkg, $rParams) = @_;
 
-	my $templateDir = ($rParams->{'templateDir'} || 'templates');
+	my $templateDir = ($rParams->{'templateDir'}    || 'templates');
+	my $varMarker   = ($rParams->{'variableMarker'} || '%%%');
 	my $templateMgr = new XML::GXML::TemplateManager($templateDir, 
 							$rParams->{'addlTemplates'},
 							$rParams->{'addlTemplate'},
-							$rParams->{'addlTempExists'});
+							$rParams->{'addlTempExists'},
+							$varMarker);
 
 	$debugMode = $rParams->{'debugMode'} unless ($debugMode);
 	
@@ -39,6 +41,7 @@ sub new
 	my $self = bless
 	{
 		_templateMgr => $templateMgr,
+		_varMarker   => $varMarker,
 		_remappings  => ($rParams->{'remappings'}  || { }),
 		_htmlMode    => ($rParams->{'html'}        || 0),
 		_dashConvert => ($rParams->{'dashConvert'} || 0),
@@ -71,9 +74,12 @@ sub AddCallbacks
 
 	# add our default commands
 	%start = ('gxml:foreach'  => \&ForEachStart);
-	%end = ('gxml:ifexists' => \&ExistsCommand,
-			'gxml:ifequals' => \&EqualsCommand,
-			'gxml:foreach'  => \&ForEachEnd,);
+	%end = ('gxml:ifexists'   => \&ExistsCommand,
+			'gxml:ifequals'   => \&EqualsCommand,
+			'gxml:ifequal'    => \&EqualsCommand,
+			'gxml:ifnotequal' => \&NotEqualsCommand,
+			'gxml:include'    => \&IncludeCommand,
+			'gxml:foreach'    => \&ForEachEnd,);
 
 	# and add the stuff passed in, if anything
 	foreach my $callback (keys %{$rCallbacks})
@@ -118,7 +124,7 @@ sub Process()
 	local $self = $selfParam;
 
 	# See note in LoadTemplate about this
-	$stuff =~ s/%%%/::VAR::/g;
+	$stuff =~ s/$self->{_varMarker}/::VAR::/g;
 
 	# Process the beastie
 	my $xp = new XML::Parser(ErrorContext => 2);
@@ -168,7 +174,7 @@ sub ProcessFile()
 	chdir($baseDir);
 
 	# See note in LoadTemplate about this
-	$file =~ s/%%%/::VAR::/g;
+	$file =~ s/$self->{_varMarker}/::VAR::/g;
 
 	# Process the beastie
 	my $xp = new XML::Parser(ErrorContext => 2);
@@ -208,8 +214,8 @@ sub ProcessFile()
 #
 # HandleStart
 #
-# Create a new attribute frame for this entity and fill it with the
-# entity's attributes, if any. Nothing is printed to $output just yet;
+# Create a new attribute frame for this element and fill it with the
+# element's attributes, if any. Nothing is printed to $output just yet;
 # that comes in HandleEnd.
 #
 sub HandleStart()
@@ -217,7 +223,7 @@ sub HandleStart()
 	my ($xp, $element, %attrs) = @_;
 	my ($key, %cbParams);
 
-	# First entity in the document is always the base
+	# First element in the document is always the base
 	$baseTag = $element unless defined($baseTag);
 	
 	XML::GXML::Util::Log("start: $element");
@@ -264,7 +270,7 @@ sub HandleStart()
 # special attribute, assuming there was char data. We need to either
 # run a substitution for the tag, or just echo the _BODY_ framed by
 # opening and closing tags. If there was no char data and this isn't a
-# templated entity, just echo <tag> (HTML syntax).
+# templated element, just echo <tag> (HTML syntax).
 #
 sub HandleEnd()
 {
@@ -276,12 +282,12 @@ sub HandleEnd()
 
 	XML::GXML::Util::Log("end: $element");
 
-	# Get the attribute frame for this entity, and also the next one up.
+	# Get the attribute frame for this element, and also the next one up.
 	my $attrsRef  = $attrStack[-1];
 	my $nextFrame = $attrStack[-2];
 	my $destRef   = undef;
 
-	# Our entity's tag may be a variable. Substitute now.
+	# Our element's tag may be a variable. Substitute now.
 	$element = SubstituteAttributes($element);
 
 	#
@@ -367,7 +373,7 @@ repeat:
 
 	#
 	# If there's a frame above us and we're not the document's base
-	# entity, we want to proceed normally. All output should go into
+	# element, we want to proceed normally. All output should go into
 	# the _BODY_ attribute of the frame above us. Otherwise we want to
 	# dump the current _BODY_ to $output and return.
 	#
@@ -377,7 +383,7 @@ repeat:
 	}
 	else
 	{
-		# Special case for the very top-level entity: if the beast has
+		# Special case for the very top-level element: if the beast has
 		# a template, substitute it and dump the output directory into
 		# $output, since there's no upper-level _BODY_ for it.
 		if (!defined $nextFrame && $self->TemplateExists($element))
@@ -404,7 +410,7 @@ repeat:
 	if ($self->TemplateExists($element))
 	{
 		#
-		# There's a template for this entity, so we need to 
+		# There's a template for this element, so we need to 
 		# substitute it in.
 		#
 		XML::GXML::Util::Log("found template for $element");
@@ -427,7 +433,7 @@ repeat:
 	{
 		#
 		# No template, so just echo the tag and relevant _BODY_ in XML
-		# syntax (i.e. <tag/> single-tag entity syntax), unless $html
+		# syntax (i.e. <tag/> single-tag element syntax), unless $html
 		# is set, in which case we want it in HTML syntax.
 		#
 
@@ -442,7 +448,7 @@ repeat:
 		# Print the tag.
 		$$destRef .= '<' . $element;
 
-		# Print the attibute list for this (and only this) entity.
+		# Print the attibute list for this (and only this) element.
 		foreach my $key (keys %$attrsRef)
 		{
 			next if $key =~ /^_[-_A-Z]+_$/; # skip special variables
@@ -455,9 +461,9 @@ repeat:
 
 		#
 		# If there's character data (i.e. this is not a single-tag
-		# entity), print that data and a closing tag.
+		# element), print that data and a closing tag.
 		#
-  		if (defined($attrsRef->{_BODY_}) && length($attrsRef->{_BODY_}) > 0)
+  		if (defined($attrsRef->{_BODY_}) && length($attrsRef->{_BODY_}))
 		{
 			# Close the opening tag
 			$$destRef .= '>';
@@ -468,12 +474,12 @@ repeat:
 		}
 		elsif ($html)
 		{
-			# Single-tag entity, but in HTML <tag> mode.
+			# Single-tag element, but in HTML <tag> mode.
 			$$destRef .= '>';
 		}
 		else
 		{
-			# Single-tag entity, and we're just doing a generic
+			# Single-tag element, and we're just doing a generic
 			# XML->XML conversion, so preserve <tag/> syntax.
 			$$destRef .= '/>';
 		}
@@ -505,12 +511,6 @@ sub HandleChar()
 	# HTML document, too.
 	$string = $xp->original_string;
 
-	# Change the marker for variables which we don't want substituted.
-	foreach my $var (@$rPreserve)
-	{
-		$string =~ s/::VAR::(${var}:?.*?)::VAR::/::SAVE::$1::SAVE::/g;
-	}
-
 	# Make variable substitutions.
 	$string = SubstituteAttributes($string);
 
@@ -519,7 +519,7 @@ sub HandleChar()
 
 	# Append the body text to the _BODY_ attribute of the last
 	# attribute frame on the stack (i.e. that of the most immediately
-	# enclosing entity).
+	# enclosing element).
 	$attrStack[-1]->{_BODY_} .= $string;
 }
 
@@ -746,7 +746,7 @@ sub FindAttribute
 			goto found;
 		}
 		
-		# Otherwise check entity params embedded in the tag.
+		# Otherwise check element params embedded in the tag.
 		return $$frame{$key} if (exists $$frame{$key});
 	}
 
@@ -803,14 +803,20 @@ sub SubstituteAttributes
 	# Hack: see note in LoadTemplates about this.
 	$marker = "::VAR::" unless defined($marker);
 
+	# Change the marker for variables which we don't want substituted.
+	foreach my $var (@$rPreserve)
+	{
+		$string =~ s/${marker}(${var}:?.*?)${marker}/::SAVE::$1::SAVE::/g;
+	}
+
 	# Special case!!! If someone requests the _BODY_ attribute, we
 	# must scan upwards in the attribute stack and grab the body text
-	# of the entity immediately above the current template's base tag.
+	# of the element immediately above the current template's base tag.
 	# This will give us the text which is enclosed by the template's
-	# tags (i.e. the character data of the template entity).
+	# tags (i.e. the character data of the template element).
 	if ($string =~ /${marker}\s*?_BODY_[\w\-:]*?\s*?${marker}/)
 	{
-		# Get index of template entity's attr frame minus one more.
+		# Get index of template element's attr frame minus one more.
 		my $index = -1;
 		while ($attrStack[$index--]->{_TAG_} ne $baseTag) { }
 
@@ -932,7 +938,7 @@ sub ExistsCommand
 	$element =~ s/\band\b/\&\&/ig;
 	$element =~ s/\bor\b/\|\|/ig;
 	$element =~ s/\bnot\b/!/ig;
-	$element =~ s/(\w+)/length(Attribute("$1"))/g;
+	$element =~ s/([\w:-_]+)/length(Attribute("$1"))/g;
 	
 	# ...and then eval() it. I love Perl.
 	unless (eval($element))
@@ -978,13 +984,45 @@ sub EqualsCommand
 }
 
 #
+# NotEqualsCommand
+#
+# Returns 'discard' to HandleEnd unless the attribute 'expr' is
+# present and NOT equal to 'equalto'.
+# 
+#
+sub NotEqualsCommand
+{
+	my ($rParams) = @_;
+
+	my $element = Attribute('expr');
+	my $equalto = Attribute('equalto');
+
+	unless (length($element))
+	{
+		XML::GXML::Util::Log("couldn't find element for gxml:equals command");
+		return;
+	}
+
+    XML::GXML::Util::Log("equals: expr is $element, equalto is $equalto");
+
+	unless (Attribute($element) ne $equalto)
+	{
+		# discard if expr equal to equalto
+		return ['discard'];
+	}
+
+	# Be sure to discard the gxml:ifequal tag
+	return ['striptag'];
+}
+
+#
 # ForEachStart
 #
 # gxml:foreach will repeat a block for each value of its 'expr' param.
 # Each iteration will contain a new value of expr, in the order they
 # appear in the XML source. In this start handler we'll need to set up
-# the special $rPreserve list with our expr so HandleChar will know to
-# not mess with it.
+# the special $rPreserve list with our expr so SubstituteAttributes
+# will know to not mess with it.
 #
 sub ForEachStart
 {
@@ -1033,7 +1071,10 @@ sub ForEachEnd
 		$repeats = 1;
 		$max     = NumAttributes($element);
 
-		# Don't need HandleChar to worry about us anymore.
+		# Bail if no attributes to iterate over.
+		return ['discard'] if ($max == 0);
+
+		# Don't need SubstituteAttributes to worry about us anymore.
 		pop(@$rPreserve);
 
 		$rParams->{'repeats'} = 1;
@@ -1172,13 +1213,14 @@ use Cwd;
 sub new
 {
 	my ($pkg, $templateDir, $addlTemplates, 
-		$addlTemplate, $addlTempExists) = @_;
+		$addlTemplate, $addlTempExists, $varMarker) = @_;
 	my $baseDir = cwd();
 
 	# Create the new beast
 	my $self = bless
 	{
-		_templateDir =>   $templateDir,
+		_templateDir => $templateDir,
+		_varMarker   => $varMarker,
 	}, $pkg;
 
 	$self->{_addlTemplates}  = $addlTemplates  if defined($addlTemplates);
@@ -1193,11 +1235,12 @@ sub new
 	foreach my $filename (@$templateListRef)
 	{
 		# Only grab .xml files
-		next unless $filename =~ /\.xml$/;
+		next unless ($filename =~ /\.xml$/ || $filename =~ /\.xhtml$/);
 		
 		# Strip ".xml" for saving in template hash; these will be
 		# referenced sans .xml extension
 		$filename =~ s/\.xml$//;
+		$filename =~ s/\.xhtml$//;
 
 		# Store blank placeholder
 		$self->{$filename} = '';
@@ -1221,7 +1264,7 @@ sub LoadTemplate
 	my ($self, $name) = @_;
 	my $baseDir = cwd();
 
-	XML::GXML::Util::Log("Loading template $name");
+	XML::GXML::Util::Log("loading template $name");
 
 	my $filename = XML::GXML::Util::ChangeToDirectory(
 					File::Spec->catfile($self->{_templateDir}, 
@@ -1229,9 +1272,15 @@ sub LoadTemplate
 
 	unless (open(TEMPLATE, $filename))
 	{
-		XML::GXML::Util::Log("ERROR: couldn't open template $name: $!");
-		chdir($baseDir);
-		return;
+		# Try .xhtml for file extension
+		$filename =~ s/\.xml$/.xhtml/;
+
+		unless (open(TEMPLATE, $filename))
+		{
+			XML::GXML::Util::Log("ERROR: couldn't open template $name: $!");
+			chdir($baseDir);
+			return;
+		}
 	}
 
 	# slurp everything
@@ -1245,10 +1294,10 @@ sub LoadTemplate
 	# A quick bit of haquage: change the variable markers
 	# %%%blah%%% to something which is still weird (i.e. not
 	# likely to conflict with legit content) but which can also be
-	# a valid in an entity name, which %%%blah%%% is not. I'm
+	# a valid in an element name, which %%%blah%%% is not. I'm
 	# picking "::VAR::blah::VAR::". Make sure this matches the
 	# default $marker var in SubstituteAttribute().
-	$file =~ s/%%%/::VAR::/g;
+	$file =~ s/$self->{_varMarker}/::VAR::/g;
 
 	# ...and finally save a reference to the stuff we slurped.
 	$self->{$name} = \$file;
@@ -1347,7 +1396,13 @@ sub CheckModified()
 		$template = XML::GXML::Util::ChangeToDirectory(
 						 File::Spec->catfile($self->{_templateDir},
 						 $template . '.xml'));
-	
+
+		unless (-e $template)
+		{
+			# Try .xhtml for file extension
+			$filename =~ s/\.xml$/.xhtml/;
+		}
+
 		# Check the mod time
 		my $modtime = (stat $template)[9];
 		if (!defined($templateModtimes{$template}) ||
@@ -1483,7 +1538,7 @@ sub CollectorStart()
 	my ($xp, $element, %attrs) = @_;
 	my ($key);
 
-	# First entity in the document is always the base
+	# First element in the document is always the base
 	$baseTag = $element unless defined($baseTag);
 	
 	foreach $key (keys %attrs)
@@ -1545,7 +1600,7 @@ sub CollectorChar()
 
 	# Append the body text to the _BODY_ attribute of the last
 	# attribute frame on the stack (i.e. that of the most immediately
-	# enclosing entity).
+	# enclosing element).
 	$XML::GXML::attrStack[-1]->{_BODY_} .= $string;
 }
 

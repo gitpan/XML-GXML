@@ -11,6 +11,7 @@ May 10, 2001<br>
 
 
 
+<br clear="all">
 <h2>Basic Variable Substitution</h2>
 
 
@@ -25,32 +26,32 @@ The syntax of a variable is as follows, for a variable called "name":
 
 <p>
 How exactly the value of "name" is determined is somewhat complicated.
-XML specifies a standard format for attributes of an entity, as
+XML specifies a standard format for attributes of an element, as
 follows:
 </p>
 
 <pre>
-    &lt;entity
+    &lt;element
         name = "Fred"
         date = "July 4, 2034"
     &gt;
 
-    (this is the content of the entity; "name" and "date" are
+    (this is the content of the element; "name" and "date" are
     in scope here.)
 
-    &lt;/entity&gt;
+    &lt;/element&gt;
 </pre>
 
 <p>
 The way everyone's used to seeing XML attributes written, however, is
-using enclosing entities, e.g.:
+using enclosing elements, e.g.:
 </p>
 
 <pre>
-    &lt;entity&gt;
+    &lt;element&gt;
         &lt;name&gt;Fred&lt;/name&gt;
         &lt;date&gt;July 4, 2034&lt;/date&gt;
-    &lt;/entity&gt;
+    &lt;/element&gt;
 </pre>
 
 <p>
@@ -58,18 +59,18 @@ GXML supports both styles. Thus both of these work:
 </p>
 
 <pre>
-    &lt;entity name="Fred"&gt;
+    &lt;element name="Fred"&gt;
 
     name is &#37;&#37;&#37;name&#37;&#37;&#37;
     (will be "Fred")
 
-    &lt;/entity&gt;
+    &lt;/element&gt;
 
-    &lt;entity&gt;
+    &lt;element&gt;
         &lt;name&gt;Fred&lt;/name&gt;
 
         name is &#37;&#37;&#37;name&#37;&#37;&#37;
-    &lt;/entity&gt;
+    &lt;/element&gt;
 </pre>
 
 
@@ -77,6 +78,7 @@ GXML supports both styles. Thus both of these work:
 
 
 
+<br clear="all">
 <h2>Variable Scoping</h2>
 
 
@@ -91,16 +93,16 @@ is, accessible through a variable:
 <ul>
   <li>For attributes declared in the start tag:
   <ul>
-    <li>The start tag must <b>enclose</b> the entity where the
+    <li>The start tag must <b>enclose</b> the element where the
       variable is used. It does not need to be the immediate parent;
       the given start tag may be several levels up.</li>
     <li>If there are several possible candidates, the most closely
       enclosing one will be chosen.</li>
   </ul>
   </li>
-  <li>For attributes that are sub-entities:
+  <li>For attributes that are sub-elements:
   <ul>
-    <li>The attribute entity must be a peer of where the variable is
+    <li>The attribute element must be a peer of where the variable is
       used, or be enclosed by a common parent.</li>
     <li>If there are several possible candidates, the most closely
       enclosing one will be chosen.</li>
@@ -132,7 +134,7 @@ are declared in the start tag:
 </pre>
 
 <p>
-Now for the case where attributes are entities themselves:
+Now for the case where attributes are elements themselves:
 </p>
 
 <pre>
@@ -162,6 +164,7 @@ Now for the case where attributes are entities themselves:
 
 
 
+<br clear="all">
 <h2>Bending the Scoping Rules</h2>
 
 
@@ -169,7 +172,7 @@ Now for the case where attributes are entities themselves:
 <p>
 I'm sure there are some CS hard-core types who would get infuriated
 over this feature, but GXML will allow you to get around some scoping
-constraints. You can "drill down," as it were, into entities which are
+constraints. You can "drill down," as it were, into elements which are
 within your scope to get enclosed values which aren't. Again, this is
 easier seen than described:
 </p>
@@ -195,12 +198,13 @@ easier seen than described:
 
 <p>
 Thus the syntax is using colons to indicate a drill-down into a given
-entity. In practice I've only found this feature useful in conjunction
+element. In practice I've only found this feature useful in conjunction
 with the "foreach" command, but maybe you'll put GXML to some other
 use (or abuse) that requires this.
 </p>
 
 
+<br clear="all">
 <h2>Default Values</h2>
 
 

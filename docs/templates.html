@@ -11,12 +11,13 @@ May 10, 2001<br>
 
 
 
+<br clear="all">
 <h2>Template Basics</h2>
 
 
 
 <p>
-Templates allow you to transform an entity in your source file into
+Templates allow you to transform an element in your source file into
 something else in your output. The most common use is to apply
 formatting; thus your input file in raw data and our output is nicely
 formatted data.
@@ -25,10 +26,10 @@ formatted data.
 <p>
 Templates are kept in a separate directory from your other files, and
 the name of the template file indicates the tag that it'll map to.
-Thus, if you want to template all "person" entities, you create a file
+Thus, if you want to template all "person" elements, you create a file
 called "<tt>person.xml</tt>" in your templates directory. The
 <tt>person.xml</tt> file will most likely take attributes from the
-person entity in your data file by using variables.
+person element in your data file by using variables.
 </p>
 
 <p>
@@ -100,13 +101,14 @@ changing a template. This gives you a great deal of flexibility.
 
 
 
+<br clear="all">
 <h2>Nested Templates</h2>
 
 
 
 <p>
 GXML fully supports nested templates. That is, a template can contain
-entities which will get mapped into other templates. It won't take
+elements which will get mapped into other templates. It won't take
 long before your project(s) get complex to need this. For example, say
 you have a "document" template, and a "link" template that you use for
 hrefs to other pages/sites. Then you add a "photo" template, and you
@@ -118,6 +120,7 @@ template within the "photo" one. It'll work like you expect.
 
 
 
+<br clear="all">
 <h2>Variable Rules With Templates</h2>
 
 
@@ -134,6 +137,7 @@ the variable matching engine works seamlessly across templates.
 
 
 
+<br clear="all">
 <h2>Variables Within Template Names</h2>
 
 
@@ -193,15 +197,16 @@ templates can be very useful.
 
 
 
+<br clear="all">
 <h2>The Special _BODY_ Variable</h2>
 
 
 
 You may have noticed I used a weird looking variable in that last
 example. There's a special variable for the text enclosed by an
-entity: <tt>_BODY_</tt>. In the example above, using <tt>_BODY_</tt>
+element: <tt>_BODY_</tt>. In the example above, using <tt>_BODY_</tt>
 in the document template meant "give me all the content of the
-'document' entity." Let's take a simpler example. Say we want the
+'document' element." Let's take a simpler example. Say we want the
 concept of a hyperlink with description, written in our document as
 follows:
 

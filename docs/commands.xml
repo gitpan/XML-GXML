@@ -8,8 +8,8 @@
 <section name="Commands Overview">
 
 <p>
-Commands are special XML entities that affect your output depending on
-contains in the data. They are most often used in templates to add,
+Commands are special XML elements that affect your output depending on
+certain other elements. They are most often used in templates to add,
 remove, or repeat parts of the template depending on what's in the
 data file. Here's a quick overview of the commands available:
 </p>
@@ -181,7 +181,7 @@ Here's the syntax:
 
 <p>
 Note that "multiple values" of an attribute implies the attribute must
-be specified as its own entity -- not one defined in a start tag --
+be specified as its own element -- not one defined in a start tag --
 since that's the only way you can have attributes that are peers with
 multiple values. It's easiest to see in an example:
 </p>
@@ -200,7 +200,7 @@ multiple values. It's easiest to see in an example:
 This will print the "I see" block three times, with <v>number</v>
 being 1, 2, and 3. Notice that all the numbers are peers of each
 other. If there are numbers somewhere else in the source file, e.g. in
-a higher-level entity, they won't be noticed. The "expr" will look for
+a higher-level element, they won't be noticed. The "expr" will look for
 the <i>closest</i> match to itself.
 </p>
 
@@ -226,7 +226,7 @@ Now let's do a more complicated example:
 
 <p>
 This time we use the "drill down" syntax for accessing member
-attributes of the person entities. We'll get "Bob, 42" the first time
+attributes of the person elements. We'll get "Bob, 42" the first time
 the foreach block runs, and "Ned, 24" the second.
 </p>
 
