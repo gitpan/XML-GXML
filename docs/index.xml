@@ -2,7 +2,7 @@
 	title	= "GXML: Generic XML Transformation Tool"
 	author	= "Josh Carter"
 	email	= "josh@multipart-mixed.com"
-	date	= "May 10, 2001"
+	date	= "Feb 24, 2002"
 >
 
 <section name="About GXML">
@@ -46,6 +46,8 @@ here:
 </ul>
 
 </section>
+
+<!--
 <section name="Download it">
 
 <p>
@@ -66,24 +68,12 @@ I've had positive reports from people running on other Unixes and
 Windows. If you find any problems, let me know. Without further ado:
 </p>
 
-<!--
 <p>
 <b><a href="gxml-2.0.tar.gz">Download GXML/gxml2html 2.1</a></b> (xxx kb .tar.gz)
 </p>
+
+</section>
 -->
-
-</section>
-
-<section name="Changes from 2.0">
-
-<ul>
-<li>Created makefile and otherwise made GXML a "proper" Perl module,
-ready to go into CPAN.</li>
-<li>Fixed some spelling errors in the docs.</li>
-<li>Made --debug option to gxml2html work again.</li>
-</ul>
-
-</section>
 
 <p>
 If you have any comments, questions, bug reports: please email me!

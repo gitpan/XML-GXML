@@ -5,16 +5,17 @@
 # This program is free software; you can redistribute it and/or modify
 # it under the same terms as Perl itself.
 
-use Cwd;
-use File::Basename;
-use File::Path;
-use File::Spec;
-use XML::Parser;
-
 package XML::GXML;
 
-use vars qw($VERSION);
-$VERSION = 2.1;
+# 'strict' turned off for release, but stays on during development.
+# use strict;
+use Cwd;
+use XML::Parser;
+
+# Most of these vars are used as locals during parsing.
+use vars ('$VERSION', '@attrStack', '$output', 
+		  '$baseTag', '$rPreserve', '$self');
+$VERSION = 2.2;
 
 my $debugMode = 0;
 
@@ -28,6 +29,7 @@ sub new
 
 	my $templateDir = ($rParams->{'templateDir'} || 'templates');
 	my $templateMgr = new XML::GXML::TemplateManager($templateDir, 
+							$rParams->{'addlTemplates'},
 							$rParams->{'addlTemplate'},
 							$rParams->{'addlTempExists'});
 
@@ -74,7 +76,7 @@ sub AddCallbacks
 			'gxml:foreach'  => \&ForEachEnd,);
 
 	# and add the stuff passed in, if anything
-	foreach $callback (keys %{$rCallbacks})
+	foreach my $callback (keys %{$rCallbacks})
 	{
 		if ($callback =~ /^start:(.*)/)
 		{
@@ -110,7 +112,7 @@ sub Process()
 	my ($selfParam, $stuff) = @_;
 	
 	# Set up these pseudo-global vars
-	local (@attrStack, $output, $baseTag, $sawCharData, $rPreserve);
+	local (@attrStack, $output, $baseTag, $rPreserve);
 
 	# Also create this so XML::Parser handlers can see it
 	local $self = $selfParam;
@@ -142,10 +144,10 @@ sub ProcessFile()
 {
 	my ($selfParam, $source, $dest) = @_;
 	my $fileName;
-	my $baseDir = main::cwd();
+	my $baseDir = cwd();
 	
 	# Set up these pseudo-global vars
-	local (@attrStack, $output, $baseTag, $sawCharData, $rPreserve);
+	local (@attrStack, $output, $baseTag, $rPreserve);
 
 	# Also create this so XML::Parser handlers can see it
 	local $self = $selfParam;
@@ -207,9 +209,8 @@ sub ProcessFile()
 # HandleStart
 #
 # Create a new attribute frame for this entity and fill it with the
-# entity's attributes, if any. Also reset the $sawCharData flag which
-# lets us know if there's any body to the tag. Nothing is printed to
-# $output just yet; that comes in HandleEnd.
+# entity's attributes, if any. Nothing is printed to $output just yet;
+# that comes in HandleEnd.
 #
 sub HandleStart()
 {
@@ -249,11 +250,6 @@ sub HandleStart()
 	# Add these attributes to the master tree.
 	AddAttributeNode($element, \%attrs);
 
-	# Reset this flag so we know the difference between paired tags
-	# and stand-alone tags in HandleEnd. Will be set to 1 if
-	# HandleChar is called.
-	$sawCharData = 0;
-
 	# Call registered callback, if one exists
 	if ($self->{'_cb-start'}->{$element})
 	{
@@ -274,7 +270,7 @@ sub HandleEnd()
 {
 	my ($xp, $element) = @_;
 	my $orig = $element;
-	my $html = ($self->{_htmlMode} != 0);
+	my $html = ($self->{_htmlMode} ne 0);
 	my ($rActions, $discard, $repeat, $strip);
 	my %cbParams;
 
@@ -317,11 +313,14 @@ repeat:
 		# have changed them.
 		undef $discard; undef $repeat; undef $strip;
 
-		foreach my $action (@$rActions)
+		if (defined($rActions) && ref($rActions) eq 'ARRAY')
 		{
-			if    ($action eq 'discard')  { $discard = 1; }
-			elsif ($action eq 'repeat')   { $repeat  = 1; }
-			elsif ($action eq 'striptag') { $strip   = 1; }
+			foreach my $action (@$rActions)
+			{
+				if    ($action eq 'discard')  { $discard = 1; }
+				elsif ($action eq 'repeat')   { $repeat  = 1; }
+				elsif ($action eq 'striptag') { $strip   = 1; }
+			}
 		}
 	}
 
@@ -349,7 +348,7 @@ repeat:
 		#
 		my $body = $cbParams{'body'};
 
-		if ($body eq undef)
+		if (!defined($body))
 		{
 			$body = $attrsRef->{_BODY_};
 			$cbParams{"body"} = $body;
@@ -385,7 +384,7 @@ repeat:
 		{
 			$output .= $self->SubstituteTemplate($element);
 		}
-		else
+		elsif (defined ($attrsRef->{_BODY_}))
 		{
 			# Otherwise just dump to $output. NOTE: this case also
 			# applies to the base tag of templates.
@@ -411,7 +410,7 @@ repeat:
 		XML::GXML::Util::Log("found template for $element");
 
 		my $substitution = $self->SubstituteTemplate($element);
-		$$destRef .= $substitution;
+		$$destRef .= $substitution if defined($substitution);
 		
 		# Update our _BODY_ to reflect the new substitution.
 		$attrsRef->{_BODY_} = $substitution;
@@ -422,7 +421,7 @@ repeat:
 		# If a callback said to strip its tag off the output, just
 		# echo our body without a tag wrapped around it.
 		#
-		$$destRef .= $attrsRef->{_BODY_} if ($sawCharData);
+		$$destRef .= $attrsRef->{_BODY_} if defined($attrsRef->{_BODY_});
 	}
 	else
 	{
@@ -444,10 +443,9 @@ repeat:
 		$$destRef .= '<' . $element;
 
 		# Print the attibute list for this (and only this) entity.
-		my $key;
-		foreach $key (keys %$attrsRef)
+		foreach my $key (keys %$attrsRef)
 		{
-			next if $key =~ /_[-_A-Z]+_/; # skip special variables
+			next if $key =~ /^_[-_A-Z]+_$/; # skip special variables
 
 			my $cleankey = $key;
 			$cleankey =~ s/^html:// if $html;
@@ -459,7 +457,7 @@ repeat:
 		# If there's character data (i.e. this is not a single-tag
 		# entity), print that data and a closing tag.
 		#
-		if ($sawCharData)
+  		if (defined($attrsRef->{_BODY_}) && length($attrsRef->{_BODY_}) > 0)
 		{
 			# Close the opening tag
 			$$destRef .= '>';
@@ -523,8 +521,6 @@ sub HandleChar()
 	# attribute frame on the stack (i.e. that of the most immediately
 	# enclosing entity).
 	$attrStack[-1]->{_BODY_} .= $string;
-
-	$sawCharData = 1;
 }
 
 #
@@ -580,9 +576,9 @@ sub AddAttributeNode
 
 	# Get our parent if there is one. This will be the last thing
 	# on the stack, as we haven't added ourself yet.
-	if (defined @attrStack[-1])
+	if (defined $attrStack[-1])
 	{ 
-		$parent = @attrStack[-1]; 
+		$parent = $attrStack[-1]; 
 	}
 	else
 	{
@@ -706,11 +702,11 @@ sub NumAttributes
 	my $ref  = ref($attr);
 	my $num;
 	
-	if ($attr == undef)
+	if (!defined($attr))
 		{ return 0; }
 	elsif ($ref eq 'ARRAY')
 		{ $num = int @{$attr}; return $num; }
-	elsif ($ref == undef)
+	elsif (!defined($ref))
 		{ return 1; }
 }
 
@@ -805,14 +801,14 @@ sub SubstituteAttributes
 	my ($string, $marker) = @_;
 
 	# Hack: see note in LoadTemplates about this.
-	$marker = "::VAR::" unless length($marker);
+	$marker = "::VAR::" unless defined($marker);
 
 	# Special case!!! If someone requests the _BODY_ attribute, we
 	# must scan upwards in the attribute stack and grab the body text
 	# of the entity immediately above the current template's base tag.
 	# This will give us the text which is enclosed by the template's
 	# tags (i.e. the character data of the template entity).
-	if ($string =~ /${marker}\s*?_BODY_[\w-:]*?\s*?${marker}/)
+	if ($string =~ /${marker}\s*?_BODY_[\w\-:]*?\s*?${marker}/)
 	{
 		# Get index of template entity's attr frame minus one more.
 		my $index = -1;
@@ -833,18 +829,18 @@ sub SubstituteAttributes
 		}
 		
 		# ...and substitute that.
-		$string =~ s/${marker}\s*?(_BODY_[\w-:]*?)\s*?${marker}/
+		$string =~ s/${marker}\s*?(_BODY_[\w\-:]*?)\s*?${marker}/
 			MungeAttributeSubstitition($1, $attrStack[$index]->{_BODY_}) /eg;
 	}
 
 	# Substitute other attributes as required. Start 
 	# with plain %%%thing%%% ones first.
-	$string =~ s/${marker}\s*?([\w-:]+?)\s*?${marker}/
+	$string =~ s/${marker}\s*?([\w\-:]+?)\s*?${marker}/
 		MungeAttributeSubstitition($1) /eg;
 	
 	# Now do %%%(thing)%%% ones, which may have contained plain
 	# %%%thing%%% ones that were just sub'd in the line above.
-	$string =~ s/${marker}\(\s*?([\w-:]+?)\s*?\)${marker}/
+	$string =~ s/${marker}\(\s*?([\w\-:]+?)\s*?\)${marker}/
 		MungeAttributeSubstitition($1) /eg;
 
 	return $string;
@@ -865,8 +861,7 @@ sub MungeAttributeSubstitition
 
 	my %processors = ("URLENCODED" => \&URLEncode,
 					  "LOWERCASE"  => \&Lowercase,
-					  "UPPERCASE"  => \&Uppercase,
-					  );
+					  "UPPERCASE"  => \&Uppercase,);
 
 	# Split the attribute name across dashes, with each chunk being a
 	# potential processor
@@ -898,6 +893,9 @@ sub MungeAttributeSubstitition
 	{
 		$substitute = &$processor($substitute);
 	}
+
+	# Return an empty string if $substitute is undef.
+	$substitute = '' unless defined($substitute);
 
 	return $substitute;
 }
@@ -998,7 +996,7 @@ sub ForEachStart
 		return;
 	}
 
-	$rPreserve = [] if ($rPreserve == undef);
+	$rPreserve = [] unless (defined($rPreserve));
 
 	push(@$rPreserve, $element);
 }
@@ -1041,6 +1039,9 @@ sub ForEachEnd
 		$rParams->{'repeats'} = 1;
 		$rParams->{'max'}     = $max;
 		$rParams->{'expr'}    = $element;
+
+		# Repeat and strip the gxml:foreach tag.
+		return ['striptag', 'repeat'];
 	}
 
 	# We've rotated back to the start, so discard and stop looping.
@@ -1140,7 +1141,7 @@ sub SubstituteTemplate
 	my $template = ${$self->TemplateMgr()->Template($templateName)};
 	
 	# Create our own aliai of relevant globals
-	local ($output, $baseTag, $sawCharData);
+	local ($output, $baseTag);
 
 	#
 	# Now create a new parser and parse the template. This will, of
@@ -1166,10 +1167,13 @@ sub SubstituteTemplate
 
 package XML::GXML::TemplateManager;
 
+use Cwd;
+
 sub new
 {
-	my ($pkg, $templateDir, $addlTemplate, $addlTempExists) = @_;
-	my $baseDir = main::cwd();
+	my ($pkg, $templateDir, $addlTemplates, 
+		$addlTemplate, $addlTempExists) = @_;
+	my $baseDir = cwd();
 
 	# Create the new beast
 	my $self = bless
@@ -1177,6 +1181,7 @@ sub new
 		_templateDir =>   $templateDir,
 	}, $pkg;
 
+	$self->{_addlTemplates}  = $addlTemplates  if defined($addlTemplates);
 	$self->{_addlTemplate}   = $addlTemplate   if defined($addlTemplate);
 	$self->{_addlTempExists} = $addlTempExists if defined($addlTempExists);
 
@@ -1214,7 +1219,7 @@ sub DESTROY
 sub LoadTemplate
 {
 	my ($self, $name) = @_;
-	my $baseDir = main::cwd();
+	my $baseDir = cwd();
 
 	XML::GXML::Util::Log("Loading template $name");
 
@@ -1262,8 +1267,14 @@ sub Template()
 	# Valid template name?
 	unless (exists $self->{$name})
 	{
-		# Check addl function if provided
-		if (defined ($self->{_addlTemplate}))
+		# Check addl hash if provided
+		if (defined ($self->{_addlTemplates})
+			&& defined($self->{_addlTemplates}->{$name}))
+		{
+			return &{$self->{_addlTemplates}->{$name}}($name);
+		}
+		# Check old-style addl function if provided
+		elsif (defined ($self->{_addlTemplate}))
 		{
 			return &{$self->{_addlTemplate}}($name);
 		}
@@ -1294,7 +1305,13 @@ sub TemplateExists()
 	{
 		return 1;
 	}
-	# How about the addl method, if there is one?
+	# Check new-stile addl hash
+	elsif (defined ($self->{_addlTemplates})
+		   && defined($self->{_addlTemplates}->{$name}))
+	{
+		return 1;
+	}
+	# How about the (old style) addl method, if there is one?
 	elsif (defined ($self->{_addlTempExists}))
 	{
 		return &{$self->{_addlTempExists}}($name);
@@ -1313,7 +1330,7 @@ sub TemplateExists()
 sub CheckModified()
 {
 	my $self    = shift;
-	my $baseDir = main::cwd();
+	my $baseDir = cwd();
 	my %templateModtimes;
 	my $templatesChanged = 0;
 
@@ -1333,7 +1350,9 @@ sub CheckModified()
 	
 		# Check the mod time
 		my $modtime = (stat $template)[9];
-		if ($modtime != $templateModtimes{$template})
+		if (!defined($templateModtimes{$template}) ||
+			!defined($modtime)                     ||
+			$modtime != $templateModtimes{$template})
 		{
 			XML::GXML::Util::Log("template $template was modified");
 			$templateModtimes{$template} = $modtime;
@@ -1377,6 +1396,11 @@ sub UpdateModified
 
 package XML::GXML::AttributeCollector;
 
+use Cwd;
+
+# These vars are used as locals during parsing.
+use vars ('@attrStack', '$baseTag', '$self');
+
 sub new
 {
 	my ($pkg, $element, $key, $tocollect) = @_;
@@ -1401,7 +1425,7 @@ sub Collect
 	my ($selfParam, $stuff) = @_;
 
 	# Set up these pseudo-global vars
-	local (@attrStack, $baseTag, $sawCharData);
+	local (@attrStack, $baseTag);
 
 	# Also create this so XML::Parser handlers can see it
 	local $self = $selfParam;
@@ -1418,10 +1442,10 @@ sub Collect
 sub CollectFromFile
 {
 	my ($selfParam, $file) = @_;
-	my $baseDir = main::cwd();
+	my $baseDir = cwd();
 
 	# Set up these pseudo-global vars
-	local (@XML::GXML::attrStack, $baseTag, $sawCharData);
+	local (@XML::GXML::attrStack, $baseTag);
 
 	# Also create this so XML::Parser handlers can see it
 	local $self = $selfParam;
@@ -1497,7 +1521,7 @@ sub CollectorEnd
 		return;
 	}
 
-	foreach $attr (@{$self->{_collect}})
+	foreach my $attr (@{$self->{_collect}})
 	{
 		$values{$attr} = XML::GXML::Attribute($attr);
 	}
@@ -1533,6 +1557,11 @@ sub CollectorChar()
 
 package XML::GXML::Util;
 
+use Cwd;
+use File::Basename;
+use File::Path;
+use File::Spec;
+
 #
 # ChangeToDirectory
 #
@@ -1544,12 +1573,12 @@ sub ChangeToDirectory
 {
 	my ($fullName) = @_;
 
-	my ($name, $path) = main::fileparse($fullName);
+	my ($name, $path) = fileparse($fullName);
 
 	# strip trailing / if necessary
 	$path =~ s/\/$//;
 
-	main::mkpath($path);
+	mkpath($path);
 	chdir($path);
 	
 	return $name;
@@ -1567,7 +1596,7 @@ sub GetFileList
 {
 	my ($prefix) = @_;
 	my (@files, $entry, $name);
-	my $currentDir = main::cwd();
+	my $currentDir = cwd();
 	local *DIR;
 
 	opendir(DIR, $currentDir) or die "can't opendir startdir: $!";
@@ -1614,10 +1643,11 @@ sub LoadModtimes
 {
 	my ($modfile, $modtimesRef) = @_;
 
-	open(MODTIMES, $modfile);
+	open(MODTIMES, $modfile) or return;
 
-	while (chomp(my $line = <MODTIMES>))
+	while (my $line = <MODTIMES>)
 	{
+		chomp($line);
 		my ($filename, $modtime) = split("\t", $line);
 		$modtimesRef->{$filename} = $modtime;
 	}
@@ -1636,7 +1666,7 @@ sub SaveModtimes
 
 	open (MODTIMES, '>' . $modfile);
 
-	foreach $filename (keys %$modtimesRef)
+	foreach my $filename (keys %$modtimesRef)
 	{
 		print MODTIMES $filename . "\t" . $modtimesRef->{$filename} . "\n";
 	}
@@ -1693,6 +1723,31 @@ to translating XML into HTML. Please see the documentation with your
 distribution of GXML, or visit its web site at:
 
   http://multipart-mixed.com/xml/
+
+=head1 SUMMARY OF PARAMETERS
+
+These are the options for creating a new GXML object. All options are
+passed in via a hash reference, as such:
+
+  # Turn on HTML mode and provide callbacks hash
+  my $gxml = new XML::GXML({'html'      => 'on', 
+                            'callbacks' => \%callbacks});
+
+Here's the complete list of options. Keys are provided first, with
+their values following:
+
+  html:           'on' or 1 will format output as HTML (see docs).
+  templateDir:    directory to look for templates.
+  remappings:     hashref mapping tag names to remap to their remapped
+                  names.
+  dashConvert:    'on' or 1 will convert '--' to unicode dash.
+  addlAttrs:      reference to subroutine that gets called on lookup
+                  for dynamic attributes.
+  addlTemplates:  hashref mapping from dynamic template name to
+                  subroutine that will create that template. (Use this
+                  instead of the following 2 params.)
+  addlTempExists: (outdated -- use addlTemplates instead.)
+  addlTemplate:   (outdated -- use addlTemplates instead.)
 
 =head1 AUTHOR
 

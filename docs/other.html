@@ -4,7 +4,7 @@
 
 <h2>Using GXML: Other Features</h2>
 by Josh Carter &lt; josh@multipart-mixed.com &gt;<br>
-May 10, 2001<br>
+Feb 24, 2002<br>
 
 <hr>
 
@@ -182,7 +182,7 @@ The source code for using the collector would be:
 </p>
 
 <pre>
-    use GXML;
+    use XML::GXML;
 
     # create a collector    
     my $collector = new XML::GXML::AttributeCollector('person', 'name', 
@@ -337,7 +337,7 @@ know the value, you return it. For example:
 </p>
 
 <pre>
-    use GXML;
+    use XML::GXML;
     
     my $gxml = new XML::GXML({'addlAttrs' =&gt; \&amp;Boberize});
     
@@ -361,17 +361,24 @@ in the XML source.
 
 
 
-<h2>Dynamic Templates (addlTemplate param)</h2>
+<h2>Dynamic Templates (addlTemplates param)</h2>
 
 
 
 <p>
 Dynamic variables are neat, but you can also go crazy with dynamic
-templates. There are two subroutines required here: one to check if a
-given template exists, and another to get it. The check routine should
-be fast -- it'll get called often -- but the other will only get
-called once per substitution where there isn't a template already on
-disk.
+templates. These are extremely handy if you have some data that
+doesn't change, but some data inside that does change. For example,
+you have a news page on your web site, and the overall layout is
+always the same, but the headlines are pulled from a database and
+constantly change. Using a dynamic template for the headlines list is a
+perfect solution.
+</p>
+
+<p>
+To add dynamic templates, simply pass in a hash that maps your dynamic
+template names to the subroutines that create the content. (The old
+style way of doing it, from GXML 2.0, is documented later.)
 </p>
 
 <p>
@@ -379,7 +386,72 @@ Here's some sample code:
 </p>
 
 <pre>
-    use GXML;
+    use XML::GXML;
+    
+    my %templates = ('headline-list' =&gt; \&amp;HeadlineListTemplate);
+
+    my $gxml = new XML::GXML({'addlTemplates' =&gt; \%templates});
+    
+    [...mainline code here...]
+    
+    sub HeadlineListTemplate
+    {
+        my $template = '&lt;headlines&gt;'; # start with root tag
+
+        [...get headlines into @headlines array here...]
+
+        # create XML for each headline
+        foreach my $headline (@headlines)
+        {
+            # append headline to $template
+            $template .= sprintf('&lt;headline&gt;&lt;link&gt;%s&lt;/link&gt;' .
+                                 '&lt;title&gt;%s&lt;/title&gt;&lt;/headline&gt;',
+                                 $headline-&gt;{'link'},
+                                 $headline-&gt;{'title'});
+        }
+        
+        # close root tag of $template
+        $template .= '&lt;/headlines&gt;';
+        
+        # always return a scalar reference
+        return \$template;
+    }
+</pre>
+
+<p>
+Then of course you can make a normal (static) template for
+<tt>&lt;headline&gt;</tt> that formats the name and the link as you
+like it. Viola! -- now you have a dynamic, database-driven news page.
+</p>
+
+
+
+
+
+<h2>Old-Style Dynamic Templates</h2>
+
+
+
+<p>
+This style of dynamic templates was in GXML 2.0. It's still around in
+case anyone's already using it. This usually gets ugly if you have
+more than a couple dynamic templates, so I recommend using the new
+style (above) instead.
+</p>
+
+<p>
+There are two subroutines required: one to check if a given template
+exists, and another to get it. The check routine should be fast --
+it'll get called often -- but the other will only get called once per
+substitution where there isn't a template already on disk.
+</p>
+
+<p>
+Here's some sample code:
+</p>
+
+<pre>
+    use XML::GXML;
     
     my $gxml = new XML::GXML(
             {'addlTempExists'  =&gt; \&amp;CheckAddlTemplate,
@@ -429,6 +501,6 @@ addlTemplate is only called when strictly necessary.
 
 
 <hr>
-<font size="-1"><i>Copyright (c) 2001 Josh Carter</i></font>
+<font size="-1"><i>Copyright (c) 2001-2002 Josh Carter</i></font>
 
 <!-- end of Using GXML: Other Features -->

@@ -10,18 +10,38 @@ use XML::GXML;
 
 my $xml = '<base><dyna-template/></base>';
 
+#######################################################################
+# old-style way of doing it (gets ugly if you have more than about
+# three dynamic templates)
+#######################################################################
+
 my $gxml = new XML::GXML(
 		{'addlTempExists'  => \&CheckAddlTemplate,
 		 'addlTemplate'    => \&AddlTemplate});
 
-print "\nbefore:\n";
-print $xml;
-print "\nafter:\n";
-print $gxml->Process($xml);
-print "\n";
+print "\nold-style template subroutines:\n";
+print "before:\n$xml";
+print "\nafter:\n" . $gxml->Process($xml) . "\n";
+undef $gxml;
+
+#######################################################################
+# new-style way of doing it -- much more scalable
+#######################################################################
+
+my %templates = ('dyna-template' => \&DynaTemplate);
+my $gxml = new XML::GXML({'addlTemplates' => \%templates});
+
+print "\nnew-style template hash:\n";
+print "before:\n$xml";
+print "\nafter:\n" . $gxml->Process($xml) . "\n";
 
 exit;
 
+#######################################################################
+# subroutines from here down
+#######################################################################
+
+# old style
 sub CheckAddlTemplate
 {
 	my $name = shift;
@@ -30,6 +50,7 @@ sub CheckAddlTemplate
 	else                          { return 0; }
 }
 
+# old style
 sub AddlTemplate
 {
 	my $name = shift;
@@ -39,5 +60,12 @@ sub AddlTemplate
 		{ return \'<p>hello there</p>'; }
 	else
 		{ return undef; }
+}
+
+# new style: no more if-elsif-else junk!
+sub DynaTemplate
+{
+	# remember: return value is a reference
+	return \'<p>hello there 2</p>';
 }
 

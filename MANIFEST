@@ -41,6 +41,7 @@ examples/article/images/dog.jpg
 examples/article/images/title.gif
 examples/article-output/.gxml2html
 examples/article-templates/article.xml
+examples/article-templates/linkbar.xml
 examples/article-templates/photo.xml
 examples/article-templates/quote.xml
 examples/article-templates/smalltype.xml
@@ -68,8 +69,13 @@ test/collector.xml
 test/commands.pl
 test/commands.xml
 test/dashconvert.pl
+test/htmlmode.pl
+test/htmlmode.xml
 test/README
 test/remapping.pl
 test/templates/cmd-foreach.xml
+test/templates/htmlphoto.xml
 test/variables.pl
 test/variables.xml
+test/varprocessors.pl
+

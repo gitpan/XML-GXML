@@ -2,6 +2,18 @@ Revision history for XML::GXML
 
 2.1  May 22, 2001 - Josh Carter <josh@multipart-mixed.com>
      - Created makefile and otherwise made GXML a "proper" Perl
-	 module, ready to go into CPAN.
+     module, ready to go into CPAN.
      - Fixed some spelling errors in the docs.
      - Made --debug option to gxml2html work again.
+
+2.2  Feb 20, 2002 - Josh Carter <josh@multipart-mixed.com>
+     - Added new style of dynamic templates, using hashrefs instead of
+     two subroutines.
+     - Fixed bug where single-tag entities were getting dropped.
+     (Usually image tags when converting stuff to HTML.)
+     - Works with all warnings on, use strict, etc..
+     - <gxml:foreach> on 1 entity works now.
+     - Updated README with more useful information for people browsing
+     CPAN.
+
+To Do:

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # gxml2html: generic, template-based XML to HTML conversion tool
-# version 2.1
+# version 2.2
 # Copyright (C) 1999-2001 Josh Carter <josh@multipart-mixed.com>
 # All rights reserved.
 #
@@ -76,7 +76,8 @@ foreach my $filename (@$fileListRef)
 	# If the destination file exists and the source file hasn't been
 	# modified since the last time we were run, skip the file. BUT, if
 	# a template changed, we want to still processes all .xml files.
-	if ((-f $dest) && ($sourcemod == $modtimes{$filename}))
+	if ((-f $dest) && (defined($modtimes{$filename})) && 
+		($sourcemod == $modtimes{$filename}))
 	{
 		$changed = 0;
 	}

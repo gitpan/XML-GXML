@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 # GXML test suite - callbacks.pl
 # by Josh Carter <josh@multipart-mixed.com>
